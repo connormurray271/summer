@@ -6,8 +6,8 @@ android {
 
     defaultConfig {
         applicationId "com.example.connormurray.cdcapp"
-        minSdkVersion 19
-        targetSdkVersion 23
+        minSdkVersion 22
+        targetSdkVersion 22
         versionCode 1
         versionName "1.0"
     }
