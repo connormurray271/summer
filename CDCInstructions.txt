@@ -1,1 +1,230 @@
 Clone or download the repo at https://github.com/mik3y/usb-serial-for-android
+
+
+Open the repo project in Android Studio
+
+
+In the usbSerialExamples folder in the build.gradle file change
+  testApplicationId "com.hoho.android.usbserial.examples"
+to
+  testApplicationId "com.hoho.android.usbserial.examples1"
+
+
+Click "Try Again" on the top of the window
+
+
+After it tries to build, an error should pop up
+  Click "Fix Gradle wrapper and re-import project"
+
+
+The project should build
+
+
+Under
+  usbSerialForAndroid > build > intermediates > bundles > release > classes.jar
+copy classes.jar
+
+
+
+
+In your own project make sure that the left side bar dropdown is on "Project" and not "Android"
+
+
+Right click on the libs folder under
+  app > libs
+Select paste
+
+
+A window will pop up. Make sure that the file name is "classes.jar" and hit OK
+
+
+Right click on the classes.jar file under
+  app > libs > classes.jar
+Select "Add As Library..."
+Add to module: "app" and hit OK
+
+
+Right click on the res folder under
+  app > res
+Select
+  New > Directory
+
+Name the directory "xml"
+
+
+Right click on the xml folder under
+  app > res > xml
+Select
+  New > XML resource file
+
+Name the file "device_filter"
+
+
+Replace the what's in the file with
+  <?xml version="1.0" encoding="utf-8"?>
+  <resources>
+    <!-- 0x04D8 / 0x000A: PIC32 Microchip CDC Example -->
+    <usb-device vendor-id="1240" product-id="10" />
+  </resources>
+
+
+Open AndroidManifest.xml under
+  app > manifests > AndroidManifest.xml
+
+
+Before
+  <application
+add
+  <uses-feature android:name="android.hardware.usb.host" />
+
+
+After
+  <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+add
+  <intent-filter>
+      <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+  </intent-filter>
+  <meta-data
+      android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+      android:resource="@xml/device_filter" />
+
+
+
+
+In your MainActivity:
+
+In the MainActivity class, add the variables
+  private UsbManager manager;
+  private UsbSerialPort sPort;
+  private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+  private SerialInputOutputManager mSerialIoManager;
+
+  private final SerialInputOutputManager.Listener mListener =
+            new SerialInputOutputManager.Listener() {
+                @Override
+                public void onRunError(Exception e) {
+
+                }
+
+                @Override
+                public void onNewData(final byte[] data) {
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            MainActivity.this.updateReceivedData(data);
+                        }
+                    });
+                }
+            };
+
+
+In the onCreate function, add the line
+  manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+
+In the MainActivity class, add the functions
+  @Override
+  protected void onPause(){
+      super.onPause();
+      stopIoManager();
+      if(sPort != null){
+          try{
+              sPort.close();
+          } catch (IOException e){ }
+          sPort = null;
+      }
+      finish();
+    }
+
+  @Override
+  protected void onResume() {
+      super.onResume();
+
+      ProbeTable customTable = new ProbeTable();
+      customTable.addProduct(0x04D8,0x000A, CdcAcmSerialDriver.class);
+      UsbSerialProber prober = new UsbSerialProber(customTable);
+
+      final List<UsbSerialDriver> availableDrivers = prober.findAllDrivers(manager);
+
+      if(availableDrivers.isEmpty()) {
+          //check
+          return;
+      }
+
+      UsbSerialDriver driver = availableDrivers.get(0);
+      sPort = driver.getPorts().get(0);
+
+      if (sPort == null){
+          //check
+      }else{
+          final UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+          UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
+          if (connection == null){
+              //check
+              return;
+          }
+
+          try {
+              sPort.open(connection);
+              sPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+
+          }catch (IOException e) {
+              //check
+              try{
+                  sPort.close();
+              } catch (IOException e1) { }
+              sPort = null;
+              return;
+          }
+      }
+      onDeviceStateChange();
+  }
+
+  private void stopIoManager(){
+      if(mSerialIoManager != null) {
+          mSerialIoManager.stop();
+          mSerialIoManager = null;
+      }
+  }
+
+  private void startIoManager() {
+      if(sPort != null){
+          mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
+          mExecutor.submit(mSerialIoManager);
+      }
+  }
+
+  private void onDeviceStateChange(){
+      stopIoManager();
+      startIoManager();
+  }
+
+  private void updateReceivedData(byte[] data) {
+      //do something with received data
+
+      //for displaying:
+      String sendString = null;
+      try {
+          sendString = new String(data, "UTF-8");
+          //display sendString
+      } catch (UnsupportedEncodingException e) {
+          e.printStackTrace();
+      }
+  }
+
+
+
+If anything is highlighted in red, click on it and press alt-enter to import the classes
+
+
+In the onResume function after
+  sPort.open(connection);
+  sPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+add
+  int i = 0;
+  String sendString = String.valueOf(i) + '\n';
+  try {
+    sPort.write(sendString.getBytes(), 10);
+  } catch (IOException e) { }
+to send the number 100 to the PIC

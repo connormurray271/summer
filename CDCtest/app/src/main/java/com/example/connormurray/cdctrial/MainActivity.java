@@ -1,9 +1,25 @@
 package com.example.connormurray.cdctrial;
 
+import android.content.Context;
+import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import com.hoho.android.usbserial.driver.CdcAcmSerialDriver;
+import com.hoho.android.usbserial.driver.ProbeTable;
+import com.hoho.android.usbserial.driver.UsbSerialDriver;
+import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.hoho.android.usbserial.driver.UsbSerialProber;
+import com.hoho.android.usbserial.util.SerialInputOutputManager;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -13,6 +29,29 @@ public class MainActivity extends AppCompatActivity {
     private TextView picText;
     int progress;
 
+    private UsbManager manager;
+    private UsbSerialPort sPort;
+    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+    private SerialInputOutputManager mSerialIoManager;
+
+    private final SerialInputOutputManager.Listener mListener =
+            new SerialInputOutputManager.Listener() {
+                @Override
+                public void onRunError(Exception e) {
+
+                }
+
+                @Override
+                public void onNewData(final byte[] data) {
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            MainActivity.this.updateReceivedData(data);
+                        }
+                    });
+                }
+            };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -21,6 +60,10 @@ public class MainActivity extends AppCompatActivity {
         slider = (SeekBar) findViewById(R.id.slider);
         sliderText = (TextView) findViewById(R.id.sliderText);
         picText = (TextView) findViewById(R.id.picText);
+
+        manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+        setMyControlListener();
     }
 
     private void setMyControlListener() {
@@ -29,6 +72,13 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 progress = i;
                 sliderText.setText("Slider: " +progress);
+
+                String sendString = String.valueOf(progress) + '\n';
+                try {
+                    sPort.write(sendString.getBytes(), 10);
+                } catch (IOException e) {
+
+                }
 
             }
 
@@ -42,6 +92,104 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        stopIoManager();
+        if(sPort != null){
+            try{
+                sPort.close();
+            } catch (IOException e){
+
+            }
+            sPort = null;
+        }
+        finish();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        ProbeTable customTable = new ProbeTable();
+        customTable.addProduct(0x04D8,0x000A, CdcAcmSerialDriver.class);
+        UsbSerialProber prober = new UsbSerialProber(customTable);
+
+        final List<UsbSerialDriver> availableDrivers = prober.findAllDrivers(manager);
+
+        if(availableDrivers.isEmpty()) {
+            //check
+            return;
+        }
+
+        UsbSerialDriver driver = availableDrivers.get(0);
+        sPort = driver.getPorts().get(0);
+
+        if (sPort == null){
+            //check
+        }else{
+
+            final UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+            UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
+            if (connection == null){
+                //check
+                return;
+            }
+
+            try {
+                sPort.open(connection);
+                sPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+
+                String sendString = String.valueOf(progress) + '\n';
+                try {
+                    sPort.write(sendString.getBytes(), 10);
+                } catch (IOException e) { }
+
+
+            }catch (IOException e) {
+                //check
+                try{
+                    sPort.close();
+                } catch (IOException e1) { }
+                sPort = null;
+                return;
+            }
+        }
+        onDeviceStateChange();
+    }
+
+    private void stopIoManager(){
+        if(mSerialIoManager != null) {
+            mSerialIoManager.stop();
+            mSerialIoManager = null;
+        }
+    }
+
+    private void startIoManager() {
+        if(sPort != null){
+            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
+            mExecutor.submit(mSerialIoManager);
+        }
+    }
+
+    private void onDeviceStateChange(){
+        stopIoManager();
+        startIoManager();
+    }
+
+    private void updateReceivedData(byte[] data) {
+        //do something with received data
+
+        //for displaying:
+        String sendString = null;
+        try {
+            sendString = new String(data, "UTF-8");
+            picText.setText(sendString);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
 }
