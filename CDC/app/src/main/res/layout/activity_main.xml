@@ -37,7 +37,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No Status (device)"
+        android:text="Device good"
         android:id="@+id/deviceCheck"
         android:layout_below="@+id/picText"
         android:layout_alignParentStart="true" />
@@ -45,8 +45,24 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No Status (connection)"
+        android:text="Connection good"
         android:id="@+id/connectionCheck"
         android:layout_below="@+id/deviceCheck"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Driver good"
+        android:id="@+id/driverCheck"
+        android:layout_below="@+id/connectionCheck"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Not receiving data"
+        android:id="@+id/dataCheck"
+        android:layout_below="@+id/driverCheck"
         android:layout_alignParentStart="true" />
 </RelativeLayout>
