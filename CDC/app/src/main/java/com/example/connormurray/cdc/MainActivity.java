@@ -1,7 +1,9 @@
 package com.example.connormurray.cdc;
 
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
@@ -148,6 +150,8 @@ public class MainActivity extends Activity {
             UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
             if (connection == null){
                 connectionCheck.setText("Unable to open device");
+                PendingIntent pi = PendingIntent.getBroadcast(this, 0, new Intent("com.android.example.USB_PERMISSION"), 0);
+                usbManager.requestPermission(driver.getDevice(), pi);
                 return;
             }
 
