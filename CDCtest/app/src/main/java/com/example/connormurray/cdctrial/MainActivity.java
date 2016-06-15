@@ -1,9 +1,9 @@
 package com.example.connormurray.cdctrial;
 
+import android.app.Activity;
 import android.content.Context;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -21,17 +21,22 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+public class MainActivity extends Activity {
 
-public class MainActivity extends AppCompatActivity {
+    private UsbManager manager;
+    private UsbSerialPort sPort;
 
     private SeekBar slider;
     private TextView sliderText;
     private TextView picText;
+    private TextView deviceCheck;
+    private TextView connectionCheck;
+    private TextView driverCheck;
+    private TextView dataCheck;
     int progress;
 
-    private UsbManager manager;
-    private UsbSerialPort sPort;
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+
     private SerialInputOutputManager mSerialIoManager;
 
     private final SerialInputOutputManager.Listener mListener =
@@ -47,24 +52,11 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             MainActivity.this.updateReceivedData(data);
+                            dataCheck.setText("Receiving Data");
                         }
                     });
                 }
             };
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        slider = (SeekBar) findViewById(R.id.slider);
-        sliderText = (TextView) findViewById(R.id.sliderText);
-        picText = (TextView) findViewById(R.id.picText);
-
-        manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-
-        setMyControlListener();
-    }
 
     private void setMyControlListener() {
         slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -79,7 +71,6 @@ public class MainActivity extends AppCompatActivity {
                 } catch (IOException e) {
 
                 }
-
             }
 
             @Override
@@ -93,6 +84,24 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        slider = (SeekBar) findViewById(R.id.slider);
+        sliderText = (TextView) findViewById(R.id.sliderText);
+        picText = (TextView) findViewById(R.id.picText);
+
+        manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+        setMyControlListener();
+
+    }
+
+
 
     @Override
     protected void onPause(){
@@ -120,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
         final List<UsbSerialDriver> availableDrivers = prober.findAllDrivers(manager);
 
         if(availableDrivers.isEmpty()) {
-            //check
+            driverCheck.setText("Driver detected");
             return;
         }
 
@@ -128,13 +137,13 @@ public class MainActivity extends AppCompatActivity {
         sPort = driver.getPorts().get(0);
 
         if (sPort == null){
-            //check
+            deviceCheck.setText("No device detected");
         }else{
 
             final UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
             UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
             if (connection == null){
-                //check
+                connectionCheck.setText("Unable to open device");
                 return;
             }
 
@@ -145,14 +154,16 @@ public class MainActivity extends AppCompatActivity {
                 String sendString = String.valueOf(progress) + '\n';
                 try {
                     sPort.write(sendString.getBytes(), 10);
-                } catch (IOException e) { }
+                } catch (IOException e) {
 
-
+                }
             }catch (IOException e) {
-                //check
+                connectionCheck.setText("Serial port didn't open: " + e.getMessage());
                 try{
                     sPort.close();
-                } catch (IOException e1) { }
+                } catch (IOException e1) {
+
+                }
                 sPort = null;
                 return;
             }
@@ -180,9 +191,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateReceivedData(byte[] data) {
-        //do something with received data
-
-        //for displaying:
         String sendString = null;
         try {
             sendString = new String(data, "UTF-8");
@@ -191,5 +199,5 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
 }
+
