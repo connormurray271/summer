@@ -13,18 +13,17 @@ to
 Click "Try Again" on the top of the window
 
 
-After it tries to build, an error should pop up
+If an error pops up after it tries to build
   Click "Fix Gradle wrapper and re-import project"
 
 
 The project should build
 
+Make sure that the left side bar dropdown is on "Project" and not "Android"
 
 Under
   usbSerialForAndroid > build > intermediates > bundles > release > classes.jar
 copy classes.jar
-
-
 
 
 In your own project make sure that the left side bar dropdown is on "Project" and not "Android"
@@ -42,6 +41,8 @@ Right click on the classes.jar file under
   app > libs > classes.jar
 Select "Add As Library..."
 Add to module: "app" and hit OK
+
+Switch the left side bar dropdown to "Android"
 
 
 Right click on the res folder under
@@ -79,8 +80,8 @@ add
 
 
 After
-  <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+      <category android:name="android.intent.category.LAUNCHER" />
+  </intent-filter>
 add
   <intent-filter>
       <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
@@ -162,6 +163,8 @@ In the MainActivity class, add the functions
           UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
           if (connection == null){
               //check
+              PendingIntent pi = PendingIntent.getBroadcast(this, 0, new Intent("com.android.example.USB_PERMISSION"), 0);
+              usbManager.requestPermission(driver.getDevice(), pi);
               return;
           }
 
@@ -222,7 +225,7 @@ In the onResume function after
   sPort.open(connection);
   sPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
 add
-  int i = 0;
+  int i = 100;
   String sendString = String.valueOf(i) + '\n';
   try {
     sPort.write(sendString.getBytes(), 10);

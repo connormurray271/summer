@@ -52,7 +52,7 @@ public class MainActivity extends Activity {
                         @Override
                         public void run() {
                             MainActivity.this.updateReceivedData(data);
-                            dataCheck.setText("Receiving Data");
+//                            dataCheck.setText("Receiving Data");
                         }
                     });
                 }
@@ -129,7 +129,7 @@ public class MainActivity extends Activity {
         final List<UsbSerialDriver> availableDrivers = prober.findAllDrivers(manager);
 
         if(availableDrivers.isEmpty()) {
-            driverCheck.setText("Driver detected");
+//            driverCheck.setText("Driver detected");
             return;
         }
 
@@ -137,13 +137,13 @@ public class MainActivity extends Activity {
         sPort = driver.getPorts().get(0);
 
         if (sPort == null){
-            deviceCheck.setText("No device detected");
+//            deviceCheck.setText("No device detected");
         }else{
 
             final UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
             UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
             if (connection == null){
-                connectionCheck.setText("Unable to open device");
+//                connectionCheck.setText("Unable to open device");
                 return;
             }
 
@@ -158,7 +158,7 @@ public class MainActivity extends Activity {
 
                 }
             }catch (IOException e) {
-                connectionCheck.setText("Serial port didn't open: " + e.getMessage());
+//                connectionCheck.setText("Serial port didn't open: " + e.getMessage());
                 try{
                     sPort.close();
                 } catch (IOException e1) {

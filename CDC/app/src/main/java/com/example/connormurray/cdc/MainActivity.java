@@ -103,7 +103,7 @@ public class MainActivity extends Activity {
 
         setMyControlListener();
 
-        }
+    }
 
 
 
